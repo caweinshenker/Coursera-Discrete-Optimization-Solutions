@@ -5,6 +5,7 @@ from collections import namedtuple
 from collections import deque
 import numpy as np
 import sys
+import time
 import copy
 Item = namedtuple("Item", ['index', 'value', 'weight'])
 
@@ -70,6 +71,7 @@ def solve_it_greedy(count, capacity, items):
             weight += item.weight
             value += item.value
     return (value, weight, taken, optimal)
+
 
 
 def solve_it_dp(count, capacity, items):
@@ -141,6 +143,46 @@ def solve_it_dp(count, capacity, items):
 
 
 
+def _optimistic_est(index, capacity, items):
+    """Estimate an optimum for the value of a set of items under a linear
+       relaxation.
+
+    Parameters
+    ---------
+    index                      -- index of first item over which to determine
+                                  an optimistic estimate
+    capacity                   -- total knapsack capacity
+    items_sorted_value_density -- list of ks items in descending order by
+                                  value density
+    pre_sorted                 -- have the values already been sorted by
+                                  value density? Yes if using best first BnB
+
+    Returns
+    -------
+    optimistic_est -- the highest knapsack value we can hope for
+    """
+    weight = 0
+    optimistic_est = 0
+    items_sorted_value_density = sorted(items, key=value_density)
+    for i in range(len(items_sorted_value_density)):
+        cur_w = items_sorted_value_density[i].weight
+        cur_v = items_sorted_value_density[i].value
+        #We can fit the whole item
+        if weight + cur_w <= capacity:
+            weight += cur_w
+            optimistic_est += cur_v
+        #We can only take a fraction of the item
+        #Add the fraction in and we are done
+        else:
+            frac = (capacity - weight) / cur_w
+            weight += frac * cur_w
+            optimistic_est += frac * cur_v
+            break
+    #print(index, items_sorted_value_density, capacity, optimistic_est)
+    return optimistic_est
+
+
+
 def solve_it_branch_and_bound(count, capacity, items):
     """Branch and bound algorithm
 
@@ -167,52 +209,25 @@ def solve_it_branch_and_bound(count, capacity, items):
     taken = [0] * count
     init_capacity = capacity
 
-    def _optimistic_est(index):
-        """Estimate an optimum for the value of the knapsack under a linear
-           relaxation.
-
-        Parameters
-        ---------
-        index   -- items index to len(items) to optimize over
-
-        Returns
-        -------
-        optimistic_est -- the best we can hope to do with these items
-        """
-
-        items_sorted_value_density = sorted(items[index:], key=value_density)
-        weight = 0
-        optimistic_est = 0
-        for i in range(count):
-            cur_w = items[i].weight
-            cur_v = items[i].value
-            #We can fit the whole item
-            if weight + cur_w <= capacity:
-                weight += cur_w
-                optimistic_est += cur_v
-            #We can only take a fraction of the item
-            #Add the fraction in and we are done
-            else:
-                frac = (capacity - weight) / cur_w
-                weight += frac * cur_w
-                optimistic_est += frac * cur_v
-                break
-        return optimistic_est
-
-
-    base_est = _optimistic_est(0)
-    #print("Optimistic estimate: " + str(base_est))
+    base_est = _optimistic_est(0, capacity, copy.deepcopy(items))
 
     #Now do depth first search on the items given
     stack = deque()
     stack.appendleft((0, 0, capacity, base_est, [0] * count))
     best_value = -sys.maxsize - 1
+
+    #Timeout on ten minutes of runtime
+    start = time.time()
     while len(stack) > 0:
-        index, value, capacity, optimistic_est, taken = stack.popleft()
+        if time.time() - start >= (600):
+            break
+        index, value, capacity, optimistic_est, taken = stack.pop()
         #print(index, value, capacity, optimistic_est, taken)
+
         #No more items
         if (index >= count):
             continue
+
         #Cannot do better than an already found value
         #So prune this subtree
         if optimistic_est < best_value:
@@ -220,16 +235,99 @@ def solve_it_branch_and_bound(count, capacity, items):
         cur_w = items[index].weight
         cur_v = items[index].value
         #Do not choose the current item
-        stack.appendleft((index + 1, value, capacity, _optimistic_est(index + 1), copy.deepcopy(taken)))
+        pass_est = value + _optimistic_est(index + 1, capacity, copy.deepcopy(items[index:]))
+        stack.appendleft((index + 1, value, capacity, pass_est, copy.deepcopy(taken)))
         #Choose the current item
         if (capacity >= cur_w):
             taken[index] = 1
-            best_value = max(value + cur_v, best_value)
-            if (best_value == value + cur_v):
+            take_cap = capacity - cur_w
+            take_val = value + cur_v
+            best_value = max(take_val, best_value)
+            if (best_value == take_val):
                 best_taken = copy.deepcopy(taken)
-            stack.appendleft((index + 1, value + cur_v, capacity - cur_w, optimistic_est, copy.deepcopy(taken)))
+            stack.appendleft((index + 1, take_val, take_cap, optimistic_est, copy.deepcopy(taken)))
 
     return (best_value, init_capacity - capacity, best_taken, optimal)
+
+
+def branch_and_bound_best_first(count, capacity, items):
+    """Best-first branch and bound algorithm
+
+    Parameters
+    ----------
+
+    count    -- item count
+    capacity -- total knapsack capacity
+    items    -- Item objects
+
+
+    Returns
+    -------
+
+    value   -- total value of solution knapsack
+    weight  -- the total weight of the knapsack solution
+    taken   -- list of items whose i-th element indicates whether the i-th item
+               was taken
+    optimal -- is this a proven optimal solution
+    """
+    optimal = 1
+    value = 0
+    taken = [0] * count
+    init_capacity = capacity
+    #items_sorted_value_density = sorted(items, key=value_density)
+
+    base_est = _optimistic_est(0, capacity, copy.deepcopy(items))
+    #print("Optimistic estimate: " + str(base_est))
+
+    #Now do depth first search on the items given
+    nodes = []
+    nodes.append((0, 0, capacity, base_est, [0] * count))
+    best_value = -sys.maxsize - 1
+    start = time.time()
+    while len(nodes) > 0:
+        #Find the best node in the list
+        if time.time() - start >= (45 * 60):
+            break
+        best_node_index = 0
+        for i in range(1, len(nodes)):
+            if nodes[i][3] > nodes[best_node_index][3]:
+                best_node_index = i
+        index, value, capacity, optimistic_est, taken = nodes.pop(best_node_index)
+        #print(index, value, capacity, optimistic_est, taken)
+
+
+        #No more items
+        if (index >= count):
+            continue
+
+
+        #Cannot do better than an already found value
+        #So prune this subtree
+        if optimistic_est < best_value:
+            continue
+
+        #print(index, value, capacity, optimistic_est, taken)
+
+
+        #Search this branch
+        cur_w = items[index].weight
+        cur_v = items[index].value
+        #Do not choose the current item
+        pass_est = value + _optimistic_est(index + 1, capacity, copy.deepcopy(items[index:]))
+        nodes.append((index + 1, value, capacity, pass_est, copy.deepcopy(items[index:])), copy.deepcopy(taken)))
+        #Choose the current item
+        if (capacity >= cur_w):
+            taken[index] = 1
+            take_val = value + cur_v
+            take_cap = capacity - cur_w
+            best_value = max(take_val, best_value)
+            if (best_value == take_val):
+                best_taken = copy.deepcopy(taken)
+            nodes.append((index + 1, take_val, take_cap, optimistic_est, copy.deepcopy(taken)))
+
+    return (best_value, init_capacity - capacity, best_taken, optimal)
+
+
 
 def parse_input(input_data):
 
@@ -259,6 +357,7 @@ def solve_it(input_data):
     #value, weight, taken, optimal = solve_it_greedy(item_count, capacity, items)
     #value, weight, taken, optimal = solve_it_dp(item_count, capacity, items)
     value, weight, taken, optimal = solve_it_branch_and_bound(item_count, capacity, items)
+    #value, weight, taken, optimal = branch_and_bound_best_first(item_count, capacity, items)
 
     assert validate(capacity, weight, taken, items) is True
 
