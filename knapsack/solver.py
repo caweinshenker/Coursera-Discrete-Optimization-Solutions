@@ -247,6 +247,7 @@ def solve_it_branch_and_bound(count, capacity, items):
                 best_taken = copy.deepcopy(taken)
             stack.appendleft((index + 1, take_val, take_cap, optimistic_est, copy.deepcopy(taken)))
 
+    print("BnB Solution found in: " + str(time.time() - start) + " seconds")
     return (best_value, init_capacity - capacity, best_taken, optimal)
 
 
@@ -314,7 +315,7 @@ def branch_and_bound_best_first(count, capacity, items):
         cur_v = items[index].value
         #Do not choose the current item
         pass_est = value + _optimistic_est(index + 1, capacity, copy.deepcopy(items[index:]))
-        nodes.append((index + 1, value, capacity, pass_est, copy.deepcopy(items[index:])), copy.deepcopy(taken)))
+        nodes.append((index + 1, value, capacity, pass_est, copy.deepcopy(taken)))
         #Choose the current item
         if (capacity >= cur_w):
             taken[index] = 1
@@ -325,6 +326,7 @@ def branch_and_bound_best_first(count, capacity, items):
                 best_taken = copy.deepcopy(taken)
             nodes.append((index + 1, take_val, take_cap, optimistic_est, copy.deepcopy(taken)))
 
+    print("BnB (best-first) Solution found in: " + str(time.time() - start) + " seconds")
     return (best_value, init_capacity - capacity, best_taken, optimal)
 
 
@@ -356,8 +358,8 @@ def solve_it(input_data):
     #print_problem(item_count, capacity, items)
     #value, weight, taken, optimal = solve_it_greedy(item_count, capacity, items)
     #value, weight, taken, optimal = solve_it_dp(item_count, capacity, items)
-    value, weight, taken, optimal = solve_it_branch_and_bound(item_count, capacity, items)
-    #value, weight, taken, optimal = branch_and_bound_best_first(item_count, capacity, items)
+    #value, weight, taken, optimal = solve_it_branch_and_bound(item_count, capacity, items)
+    value, weight, taken, optimal = branch_and_bound_best_first(item_count, capacity, items)
 
     assert validate(capacity, weight, taken, items) is True
 
