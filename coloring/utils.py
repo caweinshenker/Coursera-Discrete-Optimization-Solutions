@@ -2,11 +2,7 @@
 Utilities for the graph coloring problem
 
 """
-
-from node import Node
 import numpy as np
-
-
 
 
 def parse_input(input_data):
@@ -45,6 +41,16 @@ def parse_input(input_data):
 def build_graph(node_count, edge_count, edges):
     """
     Build an adjacency matrix representation of the graph from the edges
+
+    Parameters
+    ----------
+    node_count  -- number of nodes
+    edge_count  -- number of edges
+    edges       -- (v1, v2) pairs representing graph edges
+
+    Returns
+    -------
+    adjacencyMatrix -- an adjacency matrix representation of the graph
 
     """
     adjacencyMatrix = np.zeros((node_count, node_count))

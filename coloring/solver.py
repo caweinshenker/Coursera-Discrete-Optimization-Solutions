@@ -28,7 +28,18 @@ def solve_it_trivial(node_count, edge_count, edges):
 
 
 def solve_it_nontrivial(node_count, edge_count, edges):
-    """
+    """Graph coloring solution based on DFS of adjacency matrix
+
+    Parameters
+    ---------
+    node_count -- number of nodes
+    edge_count -- number of edges
+    edges      -- list (e_i1, e_i2) tuples representing edges
+
+    Returns
+    -------
+    optimal     -- is this a proven optimal solution
+    output_data -- string formatting of the solution as specified in the handout
     """
     #Create the adjacency matrix representing the graph
     optimal = 1
@@ -43,10 +54,11 @@ def solve_it_nontrivial(node_count, edge_count, edges):
     colors = [0] * node_count
     visited = [0] * node_count
 
-    #Print out any information
+    #Sanity prints
     #print(edges)
-    #print(graph)
+    print(graph)
     #print(colors)
+    #print("Cardinalities")
     #print(cardinalities)
 
 
@@ -56,21 +68,48 @@ def solve_it_nontrivial(node_count, edge_count, edges):
         row = node[0]
         visited[row] = 1
 
-        #Get the list of unvisited neighbors
-        #and sort their visitation order by their cardinality
-        neighbors = [col for col in range(node_count) if graph[row, col] == 1 and visited[col] == 0]
-        neighbors.sort(key = lambda x: np.sum(graph[x:]))
 
-        #For each neighbor, find the maximal color of that neighbor's neighborss
-        #and assign the neighbor max_color + 1
-        for neighbor in neighbors:
-            neighbors_neighbors = [col for col in range(node_count) if graph[neighbor, col] == 1]
-            max_color = max([colors[neighbors_neighbor] for neighbors_neighbor in neighbors_neighbors])
-            colors[neighbor] = max_color + 1
+        #Get the neighbors of this node
+        neighbors = [(col, np.sum(graph[col,:])) for col in range(node_count)
+                     if graph[row, col] == 1]
+        neighbor_colors = [colors[n[0]] for n in neighbors]
+        min_color = min(neighbor_colors)
+        next_color = colors[row]
+        if colors[row] in neighbor_colors:
+            next_color = min_color
+        while next_color in neighbor_colors:
+            next_color += 1
+        colors[row] = next_color
 
-        #After updating for a particular node, print the resulting colors array
-        print("Update result")
-        print(row, neighbors, colors)
+        #EXPERIMENTAL
+        ###################################
+
+        # #Get the list of unvisited neighbors
+        # #and sort their visitation order by their cardinality
+        # neighbors = [(col, np.sum(graph[col,:])) for col in range(node_count)
+        #             if graph[row, col] == 1 and visited[col] == 0]
+        # neighbors.sort(key = lambda x: -x[1])
+        #
+        #
+        # #For each unvisited neighbor,
+        # #find the set of its neighbor's colors
+        # #update the neighbor's color to the next color not in the set of
+        # #neighboring colors
+        # for n in neighbors:
+        #     n = n[0]
+        #     neighbors_neighbors = [col for col in range(node_count) if graph[n, col] == 1]
+        #     nn_colors = [colors[nn] for nn in neighbors_neighbors]
+        #     min_color = min([colors[nn] for nn in neighbors_neighbors])
+        #     next_color = colors[n]
+        #     if colors[n] in nn_colors:
+        #         next_color = min_color
+        #     while next_color in nn_colors:
+        #         next_color += 1
+        #     colors[n] = next_color
+        #
+        # #After updating for a particular node, print the resulting colors array
+        # #print("Update result")
+        # #print(row, neighbors, colors)
     print("Solution: " + str(colors))
     return (optimal, colors)
 
