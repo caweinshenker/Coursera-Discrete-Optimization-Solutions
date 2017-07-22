@@ -58,8 +58,8 @@ def solve_it_nontrivial(node_count, edge_count, edges):
     #print(edges)
     print(graph)
     #print(colors)
-    #print("Cardinalities")
-    #print(cardinalities)
+    print("Cardinalities")
+    print(cardinalities)
 
 
     #Begin with the most connected node
@@ -68,49 +68,22 @@ def solve_it_nontrivial(node_count, edge_count, edges):
         row = node[0]
         visited[row] = 1
 
-
         #Get the neighbors of this node
+        #and the neighboring colors
         neighbors = [(col, np.sum(graph[col,:])) for col in range(node_count)
                      if graph[row, col] == 1]
-        neighbor_colors = [colors[n[0]] for n in neighbors]
-        min_color = min(neighbor_colors)
-        next_color = colors[row]
-        if colors[row] in neighbor_colors:
-            next_color = min_color
-        while next_color in neighbor_colors:
-            next_color += 1
-        colors[row] = next_color
+        neighbor_colors = set([colors[n[0]] for n in neighbors])
 
-        #EXPERIMENTAL
-        ###################################
+        #while the node's color is identical to a neighbors color
+        #increment the current color
+        while colors[row] in neighbor_colors:
+            colors[row] += 1
+        print("Update")
+        print (row, neighbors, colors)
 
-        # #Get the list of unvisited neighbors
-        # #and sort their visitation order by their cardinality
-        # neighbors = [(col, np.sum(graph[col,:])) for col in range(node_count)
-        #             if graph[row, col] == 1 and visited[col] == 0]
-        # neighbors.sort(key = lambda x: -x[1])
-        #
-        #
-        # #For each unvisited neighbor,
-        # #find the set of its neighbor's colors
-        # #update the neighbor's color to the next color not in the set of
-        # #neighboring colors
-        # for n in neighbors:
-        #     n = n[0]
-        #     neighbors_neighbors = [col for col in range(node_count) if graph[n, col] == 1]
-        #     nn_colors = [colors[nn] for nn in neighbors_neighbors]
-        #     min_color = min([colors[nn] for nn in neighbors_neighbors])
-        #     next_color = colors[n]
-        #     if colors[n] in nn_colors:
-        #         next_color = min_color
-        #     while next_color in nn_colors:
-        #         next_color += 1
-        #     colors[n] = next_color
-        #
         # #After updating for a particular node, print the resulting colors array
         # #print("Update result")
         # #print(row, neighbors, colors)
-    print("Solution: " + str(colors))
     return (optimal, colors)
 
 
