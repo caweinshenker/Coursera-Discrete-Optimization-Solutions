@@ -143,7 +143,7 @@ def solve_it_dp(count, capacity, items):
 
 
 
-def _optimistic_est(index, capacity, items):
+def _optimistic_est(index, capacity, items_sorted_value_density):
     """Estimate an optimum for the value of a set of items under a linear
        relaxation.
 
@@ -163,7 +163,6 @@ def _optimistic_est(index, capacity, items):
     """
     weight = 0
     optimistic_est = 0
-    items_sorted_value_density = sorted(items, key=value_density)
     for i in range(len(items_sorted_value_density)):
         cur_w = items_sorted_value_density[i].weight
         cur_v = items_sorted_value_density[i].value
@@ -209,7 +208,8 @@ def solve_it_branch_and_bound(count, capacity, items):
     taken = [0] * count
     init_capacity = capacity
 
-    base_est = _optimistic_est(0, capacity, copy.deepcopy(items))
+    items_sorted_value_density = sorted(items, key=value_density)
+    base_est = _optimistic_est(0, capacity, copy.deepcopy(items_sorted_value_density))
 
     #Now do depth first search on the items given
     stack = deque()
@@ -218,8 +218,10 @@ def solve_it_branch_and_bound(count, capacity, items):
 
     #Timeout on ten minutes of runtime
     start = time.time()
+    timeout = False
     while len(stack) > 0:
-        if time.time() - start >= (600):
+        if time.time() - start >= (90 * 60):
+            timeout = True
             break
         index, value, capacity, optimistic_est, taken = stack.pop()
         #print(index, value, capacity, optimistic_est, taken)
@@ -232,14 +234,15 @@ def solve_it_branch_and_bound(count, capacity, items):
         #So prune this subtree
         if optimistic_est < best_value:
             continue
-        cur_w = items[index].weight
-        cur_v = items[index].value
+        cur_item = items_sorted_value_density[index]
+        cur_w = cur_item.weight
+        cur_v = cur_item.value
         #Do not choose the current item
-        pass_est = value + _optimistic_est(index + 1, capacity, copy.deepcopy(items[index:]))
+        pass_est = value + _optimistic_est(index + 1, capacity, copy.deepcopy(items_sorted_value_density[index + 1:]))
         stack.appendleft((index + 1, value, capacity, pass_est, copy.deepcopy(taken)))
         #Choose the current item
         if (capacity >= cur_w):
-            taken[index] = 1
+            taken[cur_item.index] = 1
             take_cap = capacity - cur_w
             take_val = value + cur_v
             best_value = max(take_val, best_value)
@@ -247,7 +250,7 @@ def solve_it_branch_and_bound(count, capacity, items):
                 best_taken = copy.deepcopy(taken)
             stack.appendleft((index + 1, take_val, take_cap, optimistic_est, copy.deepcopy(taken)))
 
-    print("BnB Solution found in: " + str(time.time() - start) + " seconds")
+    print("BnB Solution found in: " + str(time.time() - start) + " seconds.")
     return (best_value, init_capacity - capacity, best_taken, optimal)
 
 
@@ -287,7 +290,7 @@ def branch_and_bound_best_first(count, capacity, items):
     start = time.time()
     while len(nodes) > 0:
         #Find the best node in the list
-        if time.time() - start >= (45 * 60):
+        if time.time() - start >= (60 * 60):
             break
         best_node_index = 0
         for i in range(1, len(nodes)):
@@ -358,8 +361,8 @@ def solve_it(input_data):
     #print_problem(item_count, capacity, items)
     #value, weight, taken, optimal = solve_it_greedy(item_count, capacity, items)
     #value, weight, taken, optimal = solve_it_dp(item_count, capacity, items)
-    #value, weight, taken, optimal = solve_it_branch_and_bound(item_count, capacity, items)
-    value, weight, taken, optimal = branch_and_bound_best_first(item_count, capacity, items)
+    value, weight, taken, optimal = solve_it_branch_and_bound(item_count, capacity, items)
+    #value, weight, taken, optimal = branch_and_bound_best_first(item_count, capacity, items)
 
     assert validate(capacity, weight, taken, items) is True
 
