@@ -101,60 +101,6 @@ def recolor_iterative_greedy(node_count, colors, graph):
 
 
 
-
-
-
-def recolor_greedy(node_count, node, cardinality, colors, graph):
-    """Recolor a node following a local-only policy
-
-    Parameters
-    ---------
-    node_count  -- the number of nodes in the graph
-    node        -- the node index of the current node
-    cardinality -- the cardinality of the current node
-    colors      -- the colors list
-    graph       -- the adjacency matrix representing the graph
-    """
-    neighbors = [(col, np.sum(graph[col,:])) for col in range(node_count)
-                 if graph[node, col] == 1]
-    neighbors.sort(key = lambda x: -x[1])
-    neighbor_color_set = set([colors[n[0]] for n in neighbors])
-
-    #Look at all the neighbors
-    color = 0
-    while color in neighbor_color_set:
-        color += 1
-    colors[node] = color
-
-
-
-
-
-
-def recolor_greedy_tramp(node_count, colors, graph):
-        """Apply a trampoline policy to the current greedy result
-
-        Parameters
-        ---------
-        colors      -- the colors list
-        graph       -- the adjacency matrix representing the graph
-        """
-        min_color = min(set(colors))
-        max_color = max(set(colors))
-        for node in range(node_count):
-            neighbors = [(col, np.sum(graph[col,:])) for col in range(node_count)
-                         if graph[node, col] == 1]
-            neighbor_color_set = set([colors[n[0]] for n in neighbors])
-            if min_color not in neighbor_color_set:
-                colors[node] = min_color
-            elif max_color not in neighbor_color_set:
-                colors[node] = max_color
-
-
-
-
-
-
 def recolor_greedy_nonlocal(node_count, node, cardinality, colors, graph):
     """Recolor a node following a non-local policy that considers both
        neighbors and non-neighbors
