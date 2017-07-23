@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 import sys
 import numpy as np
-from utils import parse_input, build_graph, timeit, clique_no
-from greedy import recolor_local, recolor_greedy_nonlocal, recolor_greedy_tramp, recolor_iterative_greedy
+from utils import parse_input, build_graph, timeit
+from greedy import recolor_local, recolor_greedy_nonlocal, recolor_iterative_greedy
 
 
 def solve_it_trivial(node_count, edge_count, edges):
